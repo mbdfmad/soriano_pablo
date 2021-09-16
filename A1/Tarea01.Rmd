@@ -1,0 +1,656 @@
+---
+title: "Tarea 1"
+author: "Pablo Soriano González"
+date: "13/9/2021"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+subtitle: ICAI. Master en Big Data. Fundamentos Matemáticos del Análisis de Datos
+  (FMAD).
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Ejercicio 0. Ejercicios de la práctica00:
+
+
+**Usando la función sample crea un vector dado_honesto con 100 números del 1 al 6. Haz una tabla de frecuencias absolutas (de dos maneras, con table y dplyr) y una tabla de frecuencias relativas:** 
+
+Comenzamos cargando las librerías:
+
+```{r echo = TRUE, message=FALSE}
+
+library(tidyverse)
+library(dplyr)
+
+```
+Ahora continuamos creando el dado honesto y las tablas de frecuencia: 
+
+```{r}
+
+# Creamos el vector dado_honesto y lo visualizamos
+dado_honesto = sample(1:6, 100, replace = TRUE)
+dado_honesto
+
+# Hacemos la tabla de frecuencias absolutas con table
+table(dado_honesto)
+
+# Creamos una tabla con un índice
+datos <- data.frame(A = 1:100, B = dado_honesto)
+
+# Hacemos la tabla usando dplyr
+datos %>% 
+  count(B)
+
+# Hacemos ahora la tabla con frecuencias relativas
+signif(prop.table(table(datos$B)), 2)
+
+# Y las frecuencias relativas con dplyr
+datos %>% 
+  count(B) %>%
+    mutate(B, relFreq = prop.table(n), n=NULL) 
+
+```
+
+
+**A continuación crea un nuevo vector dado_cargado de manera que la probabilidad de que el número elegido valga 6 sea el doble que la probabilidad de elegir cualquiera de los cinco números restantes. Lee la ayuda de sample si lo necesitas. De nuevo, haz tablas de frecuencias absolutas y relativas de este segundo vector:** 
+
+Creamos primero el nuevo dado con mayor probabilidad en el 6:
+
+```{r}
+
+# Creamos un vector donde el 6 aparece dos veces
+carga = c(1:6, 6)
+carga
+
+# Creamos el dado cargado con un sample del vector anterior
+dado_cargado = sample(carga, 100, replace = TRUE)
+dado_cargado
+
+```
+
+Y ahora realizamos las tablas como en el ejemplo del dado honesto:
+
+```{r}
+
+# Hacemos la tabla de frecuencias absolutas con table
+table(dado_cargado)
+
+# Creamos una tabla con un índice
+datos2 <-  
+  data.frame(A = 1:100, B = dado_cargado)
+
+# Hacemos la tabla usando dplyr
+datos2 %>% 
+  count(B)
+
+# Hacemos ahora la tabla con frecuencias relativas
+signif(prop.table(table(datos2$B)), 2)
+
+# Y las frecuencias relativas con dplyr
+datos2 %>% 
+  count(B) %>%
+    mutate(B, relFreq = prop.table(n), n=NULL) 
+
+```
+
+
+**Utiliza las funciones rep y seq para crear tres vectores v1, v2 y v3 con estos elementos respectivamente**
+
+v1 = 4 4 4 4 3 3 3 3 2 2 2 2 1 1 1 1 
+
+v2 = 1 2 2 3 3 3 4 4 4 4 5 5 5 5 5 
+
+v3 = 1 2 3 4 1 2 3 4 1 2 3 4 1 2 3 4 
+
+A continuación generamos los vectores citados:
+
+```{r}
+
+v1 = rep(seq(4,1,-1), each = 4)
+v1
+v2 = rep(seq(1,5,1), seq(1,5,1))
+v2
+v3 = rep(seq(1,4,1), 4)
+v3
+
+```
+
+**Utilizando la tabla mpg de la librería tidyverse crea una tabla mpg2 que contenga las filas en las que la variable class toma el valor pickup y las columnas de la tabla original cuyos nombres empiezan por c. No se trata de que las selecciones a mano, por sus nombres. Busca información sobre funciones auxiliares para select en la Sección 5.4 de R4DS.**
+
+A continuación, generamos la tabla y la visualizamos:
+
+```{r}
+
+mpg2 <- (mpg %>% 
+            select(starts_with("c")) %>% 
+            filter(class == "pickup"))
+mpg2
+
+```
+
+**Descarga el fichero census.dta. Averigua de qué tipo de fichero se trata y usa la herramienta Import DataSet del panel Environment de RStudio para leer con R los datos de ese fichero. Asegúrate de copiar en esta práctica los dos primeros comandos que llevan a cabo la importación (excluye el comando View) y que descubrirás al usar esa herramienta. Después completa los siguientes apartados con esos datos y usando dplyr y ggplot:**
+
+Copiamos los comandos de la importación del dataset census.dta:
+
+```{r}
+
+library(haven)
+census <- read_dta("data/census.dta")
+
+```
+
+**¿Cuáles son las poblaciones totales de las regiones censales?**
+
+Creamos una tabla sumando las poblaciones de cada región censal:
+
+```{r}
+
+popReg <- (census %>% 
+         group_by(region) %>% 
+         summarise(regPop = sum(pop)))
+popReg
+
+```
+
+**Representa esas poblaciones totales en un diagrama de barras (una barra por región censal)**
+
+Lo haremos primero empleando el comando geom_col dentro de ggplot:
+
+```{r message = FALSE}
+
+ggplot(data=popReg) +
+  geom_col(aes(region, regPop))
+
+```
+
+También podemos hacerlo empleando el comando geom_bar dentro del ggplot, convirtiendo las regiones, que son números, a factores:
+
+```{r}
+
+# Convertimos la columna numérica de región a una columna de factores
+popReg$region <- as.factor(popReg$region)
+
+# Y graficamos con geom_bar
+ggplot(popReg) +
+  geom_bar(aes(x=region, y=regPop, fill = region), stat = "identity")
+
+```
+
+**Ordena los estados por población, de mayor a menor.**
+
+Lo hacemos empleando un arrange descendiente:
+
+```{r}
+
+census %>% 
+  select(state, pop) %>% 
+  arrange(desc(pop))
+
+```
+
+**Crea una nueva variable que contenga la tasa de divorcios / matrimonios para cada estado.**
+
+Para ello creamos una nueva columna empleando el comando mutate:
+
+```{r}
+
+census %>% 
+  mutate(divTasa = divorce / marriage) %>% 
+  select(state, marriage, divorce, divTasa) %>% 
+  arrange(desc(divTasa))
+
+```
+**Si nos preguntamos cuáles son los estados más envejecidos podemos responder de dos maneras. Mirando la edad mediana o mirando en qué estados la franja de mayor edad representa una proporción más alta de la población total. Haz una tabla en la que aparezcan los valores de estos dos criterios, ordenada según la edad mediana decreciente y muestra los 10 primeros estados de esa tabla.**
+
+La variable de edad mediana ya existe por lo que creamos una variable para la tasa de población más mayor por total de población:
+
+```{r}
+
+census %>% 
+  mutate(oldTasa = pop65p / pop) %>% 
+  select(state, medage, oldTasa) %>% 
+  arrange(desc(medage)) %>% 
+  head(10)
+
+```
+
+**Haz un histograma (con 10 intervalos) de los valores de la variable medage (edad mediana) y con la curva de densidad de la variable superpuesta.**
+
+Para ello primero definiremos un número de cortes que crearán los intervalos del histograma. Después graficaremos tanto el histograma como la curva de densidad superpuestas empleando los comandos geom_histogram y geom_density de ggplot:
+
+```{r}
+
+# Definimos 8 cortes entre los valores mínimo y máximo que crearán 7 intervalos del histograma
+cortes = seq(min(census$medage), max(census$medage), length.out = 8)
+
+# Y realizamos el histograma y la curva de densidad
+ggplot(census, aes(x = medage)) + 
+  geom_histogram(aes(y=stat(density)),breaks = cortes, fill = "cyan", color="black") +
+  geom_density(color="brown1", size=1.5)
+
+
+```
+
+# Ejercicio 1. Análisis exploratorio de un conjunto de datos y operaciones con dplyr:
+
+**Vamos a utilizar el conjunto de datos contenido en el fichero cholesterol.csv. Carga el conjunto de datos en un data.frame de R llamado chlstrl.**
+
+Cargamos el conjunto de datos:
+
+```{r}
+
+chlstrl <- read.csv(file = "data/cholesterol.csv", header = TRUE, sep = ",")
+
+```
+
+**Empezaremos por información básica sobre el conjunto de datos. Cuántas observaciones contiene, cuáles son las variables y de qué tipos**
+
+Obtenemos esta información empleando el comando str:
+
+```{r}
+
+str(chlstrl)
+
+```
+**Asegúrate de comprobar si hay datos ausentes y localízalos en la tabla.**
+
+Lo comprobaremos (y los localizaremos) usando los comandos is.na(), que busca las posiciones de datos NA, y which(), que nos dice cuales son las posiciones, encadenados. Las posiciones no se obtienen con 2 índices para cada una (fila y columna) si no que todas las posiciones de la matriz se enumeran de la primera a la última seguidas recorriendo las columnas en orden.
+
+```{r}
+
+nulos <- which(is.na(chlstrl))
+nulos
+
+```
+**El análisis exploratorio (numérico y gráfico) debe cubrir todos los tipos de variable de la tabla. Es decir, que al menos debes estudiar una variable por cada tipo de variable presente en la tabla. El análisis debe contener, al menos:**
+
+**- Para las variables cuantitativas (continuas o discretas). Resumen numérico básico. Gráficas (las adecuadas, a ser posible más de un tipo de gráfico).**
+
+Teniendo en cuenta el número de medidas y la extensión de los datos de los diferentes campos cuantitativos consideramos todas las variables cuantitativas como continuas. En este apartado analizamos la variable chol debido a que es la que presenta un comportamiento "más continuo" pues tiene un mayor rango de valores.
+
+A continuación realizamos el resumen numérico básico de esta variable calculando distintos parámetros, para ello debemos exigir que se ignoren los datos ausentes (NA):
+
+```{r}
+
+# Calculamos la media
+mean(chlstrl$chol, na.rm = TRUE)
+
+# Calculamos la mediana
+median(chlstrl$chol, na.rm = TRUE)
+
+# Calculamos la desviación estándar
+sd(chlstrl$chol, na.rm = TRUE)
+
+# Calculamos el máximo
+max(chlstrl$chol, na.rm = TRUE)
+
+# Calculamos el mínimo
+min(chlstrl$chol, na.rm = TRUE)
+
+```
+
+Para las gráficas comenzamos con un histograma con la curva de densidad superpuesta. Lo realizamos de la misma forma que en el ejercicio de la práctica 0:
+
+```{r message = FALSE, warning=FALSE}
+
+# Definimos los cortes
+cortes = seq(min(chlstrl$chol, na.rm = TRUE), max(chlstrl$chol, na.rm = TRUE), length.out = 16)
+
+# Y realizamos el histograma y la curva de densidad
+ggplot(chlstrl, aes(x = chol)) + 
+  geom_histogram(aes(y=stat(density)),breaks = cortes, fill = "goldenrod", color="black")+
+  geom_density(color="dodgerblue3", size=1.5)
+
+```
+
+También realizaremos el boxplot. Usando el de ggplot obtenemos:
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(chlstrl) +
+  geom_boxplot(mapping = aes(y = chol), fill="lightslateblue")
+
+```
+
+Usando el boxplot de R clásico tenemos:
+
+```{r message=FALSE, warning=FALSE}
+
+bxp_cty = boxplot(chlstrl$chol, col="lightslateblue")
+
+```
+
+Por otro lado, también realizaremos un gráfico de violín superpuesto con el boxplot y con los datos de la variable (estos se encuentran "sacudidos" del eje vertical para poder observarlos mejor):
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(chlstrl) +
+  geom_violin(mapping = aes(x=0, y = chol)) +
+  scale_x_discrete(breaks = c()) +
+  geom_boxplot(mapping = aes(y = chol), fill="green1") +
+  geom_jitter(aes(x=0, y = chol),
+  position = position_jitter(w=0.05, h= 0), col="magenta")
+
+```
+
+**- Variables categóricas (factores). Tablas de frecuencia (absolutas y relativas). Gráficas (diagrama de barras).**
+
+La unica variable categórica que encontramos en la tabla es el género. 
+
+El primer paso que realizamos con esta variable es convertir sus datos (cadenas de string) en factores:
+
+```{r}
+
+chlstrl$gender = factor(chlstrl$gender)
+
+```
+
+Después obtenemos las tablas de frecuencias absolutas y relativas:
+
+```{r}
+
+# Tabla de frecuencias absolutas
+table(chlstrl$gender)
+
+# Tabla de frecuencias relativas
+prop.table(table(chlstrl$gender))
+
+```
+
+Ahora graficamos el diagrama de barras, para lo que debemos cargar al librería viridisLite:
+
+```{r}
+# Cargamos la librería
+library(viridisLite)
+
+# Realizamos el gráfico de barras
+ggplot(chlstrl) + 
+  geom_bar(mapping = aes(x = gender), fill= c('mediumorchid','olivedrab3'))
+
+```
+
+**Los valores de height y weight están en pulgadas (inches) y libras (pounds) respectivamente. Una libra son = 0.454kg y una pulgada son = 0.0254m, aproximadamente. Usa dplyr para convertir esas columnas a metros y kilogramos respectivamente. Las nuevas columnas deben llamarse igual que las originales.**
+
+Realizamos la conversión de las columnas de la tabla empleando mutate:
+
+```{r}
+
+chlstrl <- chlstrl %>%
+              mutate("height" = height*0.0254, "weight" = weight*0.454 )
+head(chlstrl, 10)
+
+```
+
+**Ahora usa esos valores de height y weight para añadir una nueva columna llamada BMI, definida mediante:**
+
+$$  BMI = \frac{weight}{{height}^2} $$
+
+Generamos esta nueva columna volviendo a emplear mutate:
+
+```{r}
+
+chlstrl <- chlstrl %>% 
+              mutate("BMI" = weight/(height)^2)
+head(chlstrl, 10)
+
+```
+
+**Crea una nueva columna llamada ageGroup dividiendo la edad en los siguientes tres niveles: (10,40], (40,70], (70,100]**
+
+Volvemos a usar mutate y el comando cut. Para definir los cortes que crean los intervalos usaremos seq(10,100,30):
+
+```{r}
+
+chlstrl <- (chlstrl %>% 
+              mutate(ageGroup = cut(chlstrl$age, breaks = seq(10,100,30))))
+head(chlstrl, 10)
+
+```
+
+**Usando dplyr calcula cuántas observaciones hay en cada nivel de ageGroup (indicación: usa group_by). Ahora, usando aquellas observaciones que corresponden a mujeres, ¿cuál es la media del nivel de colesterol y de BMI en cada uno de esos grupos de edad?**
+
+El número total de observaciones por cada grupo de edad es el siguiente:
+
+```{r}
+
+chlstrl %>%
+  group_by(ageGroup) %>%
+  count()
+
+```
+También podemos ver cuántas de estas observaciones corresponden a mujeres por grupo de edad:
+
+```{r}
+
+chlstrl %>%
+  group_by(ageGroup) %>%
+  filter(gender=="female") %>%
+  count()
+
+```
+
+Para calcular las medias de colesterol y de BMI en las mujeres en cada uno de los distintos grupos de edad repetimos el proceso anterior añadiendo el comando summarise y haciendo las medias excluyendo los valores NA:
+
+```{r}
+
+chlstrl %>% 
+  group_by(ageGroup) %>% 
+  filter(gender == "female") %>% 
+  summarise(media_col = mean(chol,na.rm=TRUE),media_bmi = mean(BMI,na.rm=TRUE))
+
+```
+
+# Ejercicio 2: Funciones de R.
+
+**Crea una función de R llamada cambiosSigno que dado un vector x de números enteros no nulos, como [-12, -19, 9, -13, -14, -17, 8, -19, -14], calcule cuántos cambios de signo ha habido. Es decir, cuántas veces el signo de un elemento es distinto del signo del elemento previo. Por ejemplo, en el vector anterior hay 4 cambios de signo (en las posiciones 3, 4, 7 y 8).**
+
+Para crear esta función podríamos emplear bucles como en otros lenguajes. Sin embargo, mediante R podemos simplificar la tarea usando vectores y las operaciones entre ellos:
+
+```{r}
+
+cambiosSigno = function(x){
+  # Calculamos primero la longitud del vector x entrante
+  long <- length(x)
+  # En base a eso definimos dos nuevos vectores
+  # El primero contiene todos los valores de x excepto el último
+  inicio <- x[1:(long-1)]
+  # El segundo contiene todos los valores de x excepto el primero
+  final <- x[2:long]
+  # Si multiplicamos ambos vectores tendremos un vector en el que cada posición representará un
+  # posible cambio de signo. Valores positivos indican no cambio y valores negativos un cambio
+  cambios <- inicio*final
+  # El número total de cambios será la suma de los valores de este vector que sean menores que 0
+  res <- sum(cambios < 0)
+  return(res)
+}
+
+```
+
+**También se valorará que incluyas en el código como usar sample para generar vectores aleatorios de 20 enteros no nulos (el vector debe poder tomar valores positivos y negativos).**
+
+Los vectores que le pasaremos a la función deben ser aleatorios y de 20 enteros no nulos. Para ello empleamos el sample. Para evitar que el vector pueda contener aleatoriamente valores nulos no incluiremos al 0 en el espacio vectorial desde el cual el sample seleccionará los valores.
+
+```{r}
+
+x = sample(c(-30:-1,1:30), 20, replace = TRUE)
+
+# Observamos el vector
+x
+
+```
+
+A continuación probamos el funcionamiento de nuestra función y de la generación de un vector aleatorio:
+
+```{r}
+
+#Llamamos a la función para que nos muestre el número de cambios
+cambiosSigno(x)
+
+```
+
+**Modifica la función para que devuelva como resultado las posiciones donde hay cambios de signo. Llama cambiosSignoPos(x) a esa otra función.**
+
+Para esto simplemente cambiamos la suma de los cambios por un which que busque las posiciones en las que ocurren.
+
+```{r}
+
+cambiosSignoPos = function(x){
+  # Dejamos todo igual en la función
+  long <- length(x)
+  inicio <- x[1:(long-1)]
+  final <- x[2:long]
+  cambios <- inicio*final
+  # Para obtener las posiciones donde ocurren los cambios las buscamos con which
+  posiciones <- (which(cambios < 0) + 1)
+  # Hemos añadido un +1 pues si no el which nos devolvería la posición anterior al cambio
+  return(posiciones)
+}
+
+```
+
+Si ponemos a prueba nuestras funciones comprobamos su funcionamiento:
+
+```{r}
+# Volvemos a ver el vector x
+x
+
+# Contamos los cambios totales
+cambiosSigno(x)
+
+# Y localizamos las posiciones
+cambiosSignoPos(x)
+
+```
+
+
+# Ejercicio 3. R4DS.
+
+**Haz el ejercicio 6 de la Sección 3.6.1 de R4DS**
+
+En este ejercicio se nos pide recrear un conjunto de gráficas mostradas en el libro que emplean los datos de la tabla mpg. A continuación generamos cada una de las tablas y posteriormente las graficaremos todas juntas:
+
+```{r}
+
+# Primera gráfica
+g1 <- ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  geom_smooth(se = FALSE)
+
+# Segunda gráfica
+g2 <- ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_smooth(mapping = aes(group = drv), se = FALSE) +
+  geom_point()
+
+# Tercera gráfica
+g3 <- ggplot(mpg, aes(x = displ, y = hwy, colour = drv)) +
+  geom_point() +
+  geom_smooth(se = FALSE)
+
+# Cuarta gráfica
+g4 <- ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(colour = drv)) +
+  geom_smooth(se = FALSE)
+
+# Quinta gráfica
+g5 <- ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(aes(colour = drv)) +
+  geom_smooth(aes(linetype = drv), se = FALSE)
+
+# Sexta gráfica
+g6 <- ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point(size = 4, color = "white") +
+  geom_point(aes(colour = drv))
+  
+```
+
+Para graficar todas las figuras juntas primero debemos cargar la librería gridExtra y después usar grid.arrange:
+
+```{r message = FALSE}
+
+# Cargamos la librería
+library(gridExtra)
+
+# Graficamos todas las figuras
+grid.arrange(g1,g2,g3,g4,g5,g6, nrow = 3)
+```
+
+**Haz el ejercicio 1 de la Sección 5.2.4 de R4DS.**
+
+En este ejercicio se nos pide que a partir de la base de datos de vuelos que partieron de Nueva York en 2013 (nycflights13) filtremos y seleccionemos los que cumplen ciertas condiciones.
+
+```{r}
+
+# Comenzamos cargando la librería nycflights13
+library(nycflights13)
+
+```
+
+Encontrar todos los vuelos que tuvieron un retraso de dos o más horas:
+
+```{r}
+
+# Como los datos del tiempo de retraso están en minutos deberemos indicar 120 para las 2h
+flights %>% 
+  filter(arr_delay >= 120)
+
+```
+
+Encontrar todos los vuelos que volaron a Houston (IAH or HOU):
+
+```{r}
+
+flights %>% 
+  filter(dest == "IAH" | dest == "HOU")
+
+```
+
+Encontrar todos los vuelos que fueron operados por United, American, o Delta:
+
+```{r}
+
+flights %>% 
+  filter(carrier == "UA" | carrier == "AA" | carrier == "DL")
+
+```
+
+Encontrar todos los vuelos que partieron en verano (julio, agosto y septiembre):
+
+```{r}
+
+flights %>% 
+  filter(month %in% 7:9)
+
+```
+
+Encontrar todos los vuelos que llegaron más de dos horas tarde pero no salieron tarde:
+
+```{r}
+
+flights %>% 
+  filter(arr_delay > 120, dep_delay <= 0)
+
+```
+
+Encontrar todos los vuelos que se retrasaron al menos una hora pero recuperaron 30 minutos durante el vuelo:
+
+```{r}
+
+flights %>% 
+  filter(dep_delay >= 60, dep_delay - arr_delay > 30)
+
+```
+
+
+Encontrar todos los vuelos que salieron entre medianoche y las 6am, ambas inclusive:
+
+```{r}
+
+# Debido a que la medianoche se expresa como 2400 no podemos exigir unicamente <= 600
+flights %>% 
+  filter(dep_time <= 600 | dep_time == 2400)
+
+```
